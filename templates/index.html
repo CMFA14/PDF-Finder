@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finder — PDF Search & Extraction</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-deep:      #0f172a;
+            --bg-surface:   #1e293b;
+            --bg-card:      #1e293b;
+            --text-main:    #f1f5f9;
+            --text-dim:     #94a3b8;
+            --primary:      #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.3);
+            --accent:       #10b981;
+            --accent-glow:  rgba(16, 185, 129, 0.2);
+            --danger:       #ef4444;
+            --border:       #334155;
+            --border-hover: #475569;
+            
+            --radius-md:  12px;
+            --radius-lg:  16px;
+            --radius-xl:  24px;
+            
+            --shadow-sm:  0 1px 3px rgba(0,0,0,0.5);
+            --shadow-md:  0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg:  0 12px 24px rgba(0,0,0,0.5);
+            
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* ═══ HEADER ═══ */
+        .header {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            padding: 24px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-left { display:flex; align-items:center; gap:16px; }
+        .header-logo {
+            background: linear-gradient(135deg, var(--primary), #818cf8);
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+        .header-title { font-size:20px; font-weight:800; letter-spacing: -0.5px; }
+        .header-subtitle { font-size:12px; font-weight:500; color:var(--text-dim); margin-top:2px; }
+        
+        .connection-status {
+            display:flex; align-items:center; gap:10px;
+            background: var(--bg-surface);
+            padding:10px 18px; border-radius:100px;
+            border: 1px solid var(--border);
+        }
+        .status-dot { width:8px; height:8px; border-radius:50%; background:var(--border); position: relative; }
+        .status-dot.connected { 
+            background:var(--accent); 
+            box-shadow:0 0 10px var(--accent-glow); 
+        }
+        .status-dot.connected::after {
+            content: ''; position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px;
+            border: 2px solid var(--accent); border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(3); } }
+        
+        .status-text { font-size:12px; font-weight:700; color:var(--text-main); }
+
+        /* ═══ MAIN CONTENT ═══ */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 30px 40px;
+            gap: 24px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* ═══ SEARCH CARD ═══ */
+        .search-card {
+            background: var(--bg-surface);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        
+        .search-grid {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 30px;
+            align-items: flex-end;
+        }
+
+        .input-group { display: flex; flex-direction: column; gap: 10px; }
+        .input-label { font-size: 11px; font-weight: 800; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+        
+        .date-inputs { display: flex; align-items: center; gap: 8px; }
+        .input-text {
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            height: 52px;
+            padding: 0 16px;
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            outline: none;
+            transition: var(--transition);
+        }
+        .input-text:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-glow); }
+        .input-text::placeholder { color: #475569; }
+        
+        .input-day, .input-month { width: 70px; text-align: center; font-size: 18px; }
+        .input-code { flex: 1; }
+        
+        .btns-row { display: flex; gap: 12px; }
+        .btn {
+            height: 52px;
+            padding: 0 24px;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            transition: var(--transition);
+            border: none;
+        }
+        .btn-primary { 
+            background: var(--primary); color: white; 
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px var(--primary-glow); filter: brightness(1.1); }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
+        
+        .btn-outline { 
+            background: transparent; color: var(--text-dim); 
+            border: 1px solid var(--border);
+        }
+        .btn-outline:hover { background: var(--border); color: var(--text-main); }
+
+        .btn-danger { background: var(--danger); color: white; }
+
+        /* ═══ PROGRESS ═══ */
+        .progress-container {
+            margin-top: 10px;
+            display: none;
+        }
+        .progress-track { height: 6px; background: var(--bg-deep); border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.4s ease; }
+        .progress-info { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; font-weight: 600; color: var(--text-dim); }
+
+        /* ═══ FILE CHIPS ═══ */
+        .files-list {
+            display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px;
+            max-height: 120px; overflow-y: auto; padding-right: 10px;
+        }
+        .files-list::-webkit-scrollbar { width: 4px; }
+        .files-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        
+        .file-chip {
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .file-chip:hover { border-color: var(--primary); color: var(--text-main); }
+        .file-chip.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 10px var(--primary-glow); }
+
+        /* ═══ RESULTS SECTION ═══ */
+        .results-container {
+            display: grid;
+            grid-template-columns: 450px 1fr;
+            gap: 24px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .panel {
+            background: var(--bg-surface);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+
+        .panel-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .panel-title { font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
+        .panel-badge { background: var(--bg-deep); padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; color: var(--primary); }
+
+        .results-list {
+            flex: 1; overflow-y: auto; padding: 16px;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .results-list::-webkit-scrollbar { width: 6px; }
+        .results-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+        .result-card {
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        .result-card:hover { border-color: var(--primary); transform: translateX(4px); }
+        .result-card.active { border-color: var(--primary); background: var(--primary-glow); }
+        
+        .result-beneficiary { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: var(--text-main); }
+        .result-file { font-size: 11px; font-weight: 600; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; gap: 6px; }
+        .result-file::before { content: '📄'; }
+        
+        .result-value { 
+            position: absolute; top: 20px; right: 20px;
+            font-size: 16px; font-weight: 800; color: var(--accent);
+        }
+
+        .content-body {
+            flex: 1; overflow-y: auto; padding: 32px;
+            background: radial-gradient(circle at top right, var(--bg-surface), var(--bg-deep));
+        }
+
+        .receipt-view { animation: fadeInUp 0.4s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .receipt-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .data-item {
+            background: var(--bg-deep);
+            padding: 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+        .data-label { font-size: 10px; font-weight: 800; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
+        .data-value { font-size: 14px; font-weight: 700; color: var(--text-main); word-break: break-all; }
+        .data-value.mono { font-family: 'JetBrains Mono', monospace; }
+
+        .text-preview {
+            background: #0a0f1d;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            color: #bbc4d4;
+            white-space: pre-wrap;
+            position: relative;
+        }
+        .text-preview .highlight { 
+            background: var(--primary); color: white; 
+            padding: 2px 4px; border-radius: 4px; font-weight: 800; 
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .empty-state {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; opacity: 0.5; text-align: center;
+        }
+        .empty-icon { font-size: 64px; margin-bottom: 20px; }
+        .empty-text { font-size: 14px; font-weight: 600; }
+
+        .footer {
+            padding: 12px 40px;
+            background: var(--bg-deep);
+            border-top: 1px solid var(--border);
+            display: flex; justify-content: space-between;
+            font-size: 11px; font-weight: 600; color: var(--text-dim);
+        }
+
+        .toast {
+            position: fixed; bottom: 30px; right: 30px;
+            padding: 16px 28px; border-radius: var(--radius-md);
+            background: var(--bg-surface); border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg); z-index: 1000;
+            display: flex; align-items: center; gap: 12px;
+            transform: translateY(100px); opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-left: 4px solid var(--accent); }
+        .toast.error { border-left: 4px solid var(--danger); }
+
+        .spinner {
+            width: 18px; height: 18px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: white; border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 1100px) {
+            .results-container { grid-template-columns: 1fr; }
+            .results-list { max-height: 400px; }
+            .search-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="header-left">
+            <div class="header-logo">📄</div>
+            <div>
+                <h1 class="header-title">ComprovanteFinder</h1>
+                <p class="header-subtitle">Advanced PDF Search & Data Extraction Engine</p>
+            </div>
+        </div>
+        <div class="connection-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span class="status-text" id="statusText">Connecting...</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- SEARCH SECTION -->
+        <section class="search-card">
+            <div class="search-grid">
+                <div class="input-group">
+                    <label class="input-label">Date Filter</label>
+                    <div class="date-inputs">
+                        <input type="text" class="input-text input-day" id="day" placeholder="DD" maxlength="2">
+                        <span style="color:var(--text-dim); font-weight:800;">/</span>
+                        <input type="text" class="input-text input-month" id="month" placeholder="MM" maxlength="2">
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label class="input-label">Extraction Code</label>
+                    <input type="text" class="input-text input-code" id="code" placeholder="Enter recipient code or authentication key...">
+                </div>
+                
+                <div class="btns-row">
+                    <button class="btn btn-outline" id="btnList" onclick="listFiles()">
+                        📂 Scan Files
+                    </button>
+                    <button class="btn btn-primary" id="btnSearch" onclick="searchInside()">
+                        🔍 Extract Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Progress -->
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+                <div class="progress-info">
+                    <span id="progressText">Initializing scan...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+            </div>
+
+            <!-- Found Files -->
+            <div id="filesContainer" style="display:none;">
+                <label class="input-label" style="margin-bottom:10px; display:block;">Detected PDF Targets</label>
+                <div class="files-list" id="filesList"></div>
+            </div>
+        </section>
+
+        <!-- RESULTS SECTION -->
+        <section class="results-container">
+            <!-- Left Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Search Results</span>
+                    <span class="panel-badge" id="resultsCount">0</span>
+                </div>
+                <div class="results-list" id="resultsList">
+                    <div class="empty-state">
+                        <div class="empty-icon">🔎</div>
+                        <p class="empty-text">Select parameters and scan to begin</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel (Content) -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Extracted Data</span>
+                    <div id="contentActions" style="display:none;">
+                        <button class="btn-outline" style="height:32px; font-size:11px;" onclick="downloadCurrent()">⬇️ Export Page</button>
+                    </div>
+                </div>
+                <div class="content-body" id="contentBody">
+                    <div class="empty-state">
+                        <div class="empty-icon">📊</div>
+                        <p class="empty-text">Data details will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <span>&copy; 2026 PDF Extraction Engine • V2.0</span>
+        <span id="footerStatus">Core processing ready</span>
+    </footer>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const state = {
+            files: [],
+            selectedFileId: null,
+            results: [],
+            currentResult: null,
+            isSearching: false,
+            abortController: null
+        };
+
+        const $ = id => document.getElementById(id);
+
+        window.onload = checkConnection;
+
+        async function checkConnection() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                if (data.connected) {
+                    $('statusDot').className = 'status-dot connected';
+                    $('statusText').textContent = 'Live System';
+                } else {
+                    $('statusDot').className = 'status-dot';
+                    $('statusText').textContent = 'Disconnected';
+                    showToast(data.error || 'Connection Failed', 'error');
+                }
+            } catch (e) {
+                $('statusDot').className = 'status-dot';
+                $('statusText').textContent = 'Offline';
+            }
+        }
+
+        async function listFiles() {
+            const day = $('day').value.trim();
+            const month = $('month').value.trim();
+            if (!day || !month) return showToast('Enter day and month', 'error');
+
+            const btn = $('btnList');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Scanning...';
+            
+            try {
+                const res = await fetch('/api/list-files', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ day, month })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    state.files = data.files;
+                    renderFileChips();
+                    showToast(`${data.total_files} relevant PDFs found`, 'success');
+                } else {
+                    showToast(data.error, 'error');
+                    $('filesContainer').style.display = 'none';
+                }
+            } catch (e) {
+                showToast('API Error: ' + e.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '📂 Scan Files';
+            }
+        }
+
+        function renderFileChips() {
+            const container = $('filesContainer');
+            const list = $('filesList');
+            container.style.display = 'block';
+            list.innerHTML = '';
+
+            // 'All files' chip
+            const allChip = document.createElement('div');
+            allChip.className = 'file-chip active';
+            allChip.textContent = 'Scan All Detected Files';
+            allChip.onclick = () => selectFile(null, allChip);
+            list.appendChild(allChip);
+
+            state.files.forEach(f => {
+                const chip = document.createElement('div');
+                chip.className = 'file-chip';
+                chip.textContent = f.name;
+                chip.onclick = () => selectFile(f.id, chip);
+                list.appendChild(chip);
+            });
+            state.selectedFileId = null;
+        }
+
+        function selectFile(id, chip) {
+            state.selectedFileId = id;
+            document.querySelectorAll('.file-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+        }
+
+        async function searchInside() {
+            if (state.isSearching) return cancelSearch();
+            
+            const code = $('code').value.trim();
+            if (!code) return showToast('Enter extraction code', 'error');
+            
+            const targets = state.selectedFileId ? 
+                state.files.filter(f => f.id === state.selectedFileId) : 
+                state.files;
+            
+            if (targets.length === 0) return showToast('Scan files first', 'error');
+
+            startUiSearch();
+            
+            let foundCount = 0;
+            state.results = [];
+
+            try {
+                for (let i = 0; i < targets.length; i++) {
+                    const f = targets[i];
+                    updateProgress(
+                        ((i / targets.length) * 100), 
+                        `Processing: ${f.name} (${i + 1}/${targets.length})`
+                    );
+
+                    const res = await fetch('/api/search-single-pdf', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ file_id: f.id, file_name: f.name, code }),
+                        signal: state.abortController.signal
+                    });
+
+                    const reader = res.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (value) {
+                            buffer += decoder.decode(value, { stream: true });
+                            let lines = buffer.split('\n');
+                            buffer = lines.pop();
+
+                            for (let line of lines) {
+                                if (!line.trim()) continue;
+                                try {
+                                    const data = JSON.parse(line);
+                                    if (data.success && data.result) {
+                                        state.results.push(data.result);
+                                        foundCount++;
+                                        renderResults();
+                                    }
+                                } catch (e) {}
+                            }
+                        }
+                        if (done) break;
+                    }
+                }
+                
+                updateProgress(100, `Complete. ${foundCount} matches extracted.`);
+                if (foundCount === 0) showToast('No data matches found', 'info');
+            } catch (e) {
+                if (e.name !== 'AbortError') showToast('Extraction error: ' + e.message, 'error');
+            } finally {
+                stopUiSearch();
+            }
+        }
+
+        function renderResults() {
+            const list = $('resultsList');
+            $('resultsCount').textContent = state.results.length;
+            
+            if (state.results.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔎</div><p class="empty-text">No matches yet</p></div>';
+                return;
+            }
+
+            showToast('Erro ao limpar cache', 'error');
+        }
+    }
+
+    // ═══════════════════════════════════════
+    //  RENDER CARDS (compartilhado)
+    // ═══════════════════════════════════════
+
+    function renderCards(tab, results, code) {
+        const list = $(`${tab}ResultsList`);
+        list.innerHTML = '';
+
+        results.forEach((result, i) => {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.onclick = () => selectCard(tab, i, card);
+
+            const r = result.receipt || {};
+            const beneficiary = r.beneficiario || 'Beneficiário não identificado';
+            const valor = r.valor || '';
+            const cnpj = r.cnpj_cpf || '';
+
+            card.innerHTML = `
+                <div class="result-file-tag">📄 ${escHtml(result.file_name.length > 40 ? result.file_name.substring(0,37)+'...' : result.file_name)}</div>
+                <div class="result-beneficiary">🏢 ${escHtml(beneficiary)}</div>
+                <div class="result-meta">
+                    <span class="result-meta-item">📃 Pág ${result.page}/${result.total_pages}</span>
+                    ${cnpj ? `<span class="result-meta-item">📋 ${escHtml(cnpj)}</span>` : ''}
+                </div>
+                ${valor ? `<div class="result-value">R$ ${escHtml(valor)}</div>` : ''}
+                <div class="result-actions">
+                    <button class="btn-small btn-download"
+                            onclick="event.stopPropagation(); downloadPage('${result.file_id}',${result.page},'${escAttr(beneficiary)}','${tab}')">
+                        ⬇️ Baixar PDF
+                    </button>
+                    <button class="btn-small"
+                            onclick="event.stopPropagation(); viewPage('${result.file_id}',${result.page})">
+                        👁️ Visualizar
+                    </button>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+
+        if (results.length > 0) {
+            selectCard(tab, 0, list.querySelector('.result-card'));
+        }
+    }
+
+    function selectCard(tab, index, el) {
+        const list = $(`${tab}ResultsList`);
+        list.querySelectorAll('.result-card').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        state[tab].current = state[tab].results[index];
+        showContent(tab, state[tab].current);
+    }
+
+    // ═══════════════════════════════════════
+    //  CONTENT PANEL
+    // ═══════════════════════════════════════
+
+    function showContent(tab, result) {
+        const codeInput = tab === 'br' ? 'brCode' : 'otCode';
+        const code = $(codeInput).value.trim();
+        const r = result.receipt || {};
+
+        $(`${tab}ContentTitle`).textContent = `📃 ${result.file_name} • Página ${result.page}/${result.total_pages}`;
+        $(`${tab}ContentActions`).style.display = 'flex';
+
+        let html = '<div class="receipt-header">';
+        html += '<div class="receipt-header-title">📋 Informações do Comprovante</div>';
+        html += '<div class="receipt-info-grid">';
+
+        const fields = [
+            ['Arquivo', result.file_name],
+            ['Página', `${result.page} de ${result.total_pages}`],
+            ['Beneficiário', r.beneficiario],
+            ['CPF/CNPJ', r.cnpj_cpf],
+            ['Valor', r.valor ? `R$ ${r.valor}` : ''],
+            ['Data Pgto', r.data_pagamento],
+            ['Referência', r.referencia],
+            ['Tipo', r.tipo_pagamento],
+            ['Status', r.status],
+            ['Autenticação', r.codigo_autenticacao],
+        ];
+
+        fields.forEach(([label, value]) => {
+            if (value) {
+                html += `<span class="receipt-label">${label}</span>`;
+                html += `<span class="receipt-value">${escHtml(value)}</span>`;
+            }
+        });
+        html += '</div></div>';
+
+        let pageText = escHtml(result.page_text);
+        if (code) {
+            const regex = new RegExp(`(${escRegex(code)})`, 'gi');
+            pageText = pageText.replace(regex, '<span class="highlight">$1</span>');
+        }
+        html += '<div class="page-text">' + pageText + '</div>';
+
+        $(`${tab}ContentBody`).innerHTML = html;
+        $(`${tab}ContentBody`).scrollTop = 0;
+    }
+
+    function showEmptyContent(tab, icon, title, text) {
+        $(`${tab}ContentBody`).innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">${icon}</div>
+                <div class="empty-title">${escHtml(title)}</div>
+                <div class="empty-text">${escHtml(text)}</div>
+            </div>`;
+        $(`${tab}ContentActions`).style.display = 'none';
+    }
+
+    function resetContentPanel(tab) {
+        $(`${tab}ContentBody`).innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">📃</div>
+                <div class="empty-title">Conteúdo do comprovante</div>
+                <div class="empty-text">Clique em um resultado à esquerda</div>
+            </div>`;
+        $(`${tab}ContentTitle`).textContent = '📃 Selecione um resultado';
+        $(`${tab}ContentActions`).style.display = 'none';
+    }
+
+    // ═══════════════════════════════════════
+    //  DOWNLOAD / VIEW
+    // ═══════════════════════════════════════
+
+    function downloadPage(fileId, page, beneficiary, tab) {
+        let dateStr = '';
+        if (tab === 'br') {
+            dateStr = `${$('brDay').value.padStart(2,'0')}-${$('brMonth').value.padStart(2,'0')}-${$('brYear').value}`;
+        } else {
+            dateStr = `${$('otDay').value.padStart(2,'0')}-${$('otMonth').value.padStart(2,'0')}`;
+        }
+        const codeInput = tab === 'br' ? 'brCode' : 'otCode';
+        const code = $(codeInput).value.trim();
+        const safeName = beneficiary.replace(/[^a-zA-Z0-9\s]/g,'').replace(/\s+/g,'_').substring(0,40);
+        const filename = `Comprovante_${safeName}_${code}_${dateStr}.pdf`;
+
+        const url = `/api/download-page?file_id=${encodeURIComponent(fileId)}&page=${page}&filename=${encodeURIComponent(filename)}`;
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+        showToast(`⬇️ Baixando: ${filename}`, 'success');
+    }
+
+    function downloadCurrent(tab) {
+        const cur = state[tab].current;
+        if (!cur) return;
+        const r = cur.receipt || {};
+        downloadPage(cur.file_id, cur.page, r.beneficiario || 'Comprovante', tab);
+    }
+
+    function viewPage(fileId, page) {
+        window.open(`/api/view-page?file_id=${encodeURIComponent(fileId)}&page=${page}`, '_blank');
+    }
+
+    // ═══════════════════════════════════════
+    //  EXPORT
+    // ═══════════════════════════════════════
+
+    function exportResults(tab) {
+        const results = state[tab].results;
+        if (!results.length) { showToast('Nenhum resultado','error'); return; }
+
+        const codeInput = tab === 'br' ? 'brCode' : 'otCode';
+        const data = {
+            busca: { codigo: $(codeInput).value, total: results.length, exportado: new Date().toISOString() },
+            resultados: results.map(r => ({
+                beneficiario: (r.receipt||{}).beneficiario||'',
+                cnpj: (r.receipt||{}).cnpj_cpf||'',
+                valor: (r.receipt||{}).valor||'',
+                pagina: r.page, arquivo: r.file_name, conteudo: r.page_text,
+            })),
+        };
+        const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `comprovantes_${$(codeInput).value}_${Date.now()}.json`;
+        a.click(); URL.revokeObjectURL(url);
+        showToast('💾 Exportado!', 'success');
+    }
+
+    // ═══════════════════════════════════════
+    //  UTILS
+    // ═══════════════════════════════════════
+
+    function autoTab(el, nextId, maxLen) {
+        el.value = el.value.replace(/\D/g,'');
+        if (el.value.length >= maxLen) $(nextId).focus();
+    }
+
+    function clearResultsList(tab) {
+        const emojis = { br: '🏦', ot: '📁' };
+        const titles = { br: 'BRASILPROCESADOS', ot: 'Outros Comprovantes' };
+        $(`${tab}ResultsList`).innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">${emojis[tab]}</div>
+                <div class="empty-title">${titles[tab]}</div>
+                <div class="empty-text">Preencha os campos e busque</div>
+            </div>`;
+        $(`${tab}ResultsCount`).textContent = '0';
+        state[tab].results = [];
+        state[tab].current = null;
+    }
+
+    function setProgress(tab, pct, text) {
+        $(`${tab}Progress`).style.display = 'block';
+        $(`${tab}ProgressFill`).style.width = pct + '%';
+        $(`${tab}ProgressText`).textContent = text;
+    }
+    function hideProgress(tab) { $(`${tab}Progress`).style.display = 'none'; }
+
+    function setStatus(msg) { $('statusMessage').textContent = msg; }
+
+    function showToast(msg, type='info') {
+        const t = $('toast');
+        t.textContent = msg;
+        t.className = `toast ${type} show`;
+        setTimeout(() => t.classList.remove('show'), 4000);
+    }
+
+    function escHtml(s) {
+        if (!s) return '';
+        const d = document.createElement('div');
+        d.textContent = s; return d.innerHTML;
+    }
+    function escAttr(s) { return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+    function escRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+    </script>
+</body>
+</html>

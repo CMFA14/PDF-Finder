@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+build/
+dist/
+
+# Environment and Secrets
+.env
+credentials.json
+token.json
+
+# App specific
+temp_pages/
+temp_pdfs/
+
+# OS
+.DS_Store
+Thumbs.db
