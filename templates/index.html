@@ -348,15 +348,15 @@
 
     <header class="header">
         <div class="header-left">
-            <div class="header-logo">📄</div>
+            <div class="header-logo">📂</div>
             <div>
-                <h1 class="header-title">ComprovanteFinder</h1>
-                <p class="header-subtitle">Advanced PDF Search & Data Extraction Engine</p>
+                <h1 class="header-title">PDF Extraction Engine</h1>
+                <p class="header-subtitle">Local PDF Data Search & Extraction (BETA)</p>
             </div>
         </div>
         <div class="connection-status">
             <div class="status-dot" id="statusDot"></div>
-            <span class="status-text" id="statusText">Connecting...</span>
+            <span class="status-text" id="statusText">Scanning Folder...</span>
         </div>
     </header>
 
@@ -365,7 +365,7 @@
         <section class="search-card">
             <div class="search-grid">
                 <div class="input-group">
-                    <label class="input-label">Date Filter</label>
+                    <label class="input-label">Date Filter (DD/MM)</label>
                     <div class="date-inputs">
                         <input type="text" class="input-text input-day" id="day" placeholder="DD" maxlength="2">
                         <span style="color:var(--text-dim); font-weight:800;">/</span>
@@ -374,16 +374,16 @@
                 </div>
                 
                 <div class="input-group">
-                    <label class="input-label">Extraction Code</label>
-                    <input type="text" class="input-text input-code" id="code" placeholder="Enter recipient code or authentication key...">
+                    <label class="input-label">Keyword / Authentication Code</label>
+                    <input type="text" class="input-text input-code" id="code" placeholder="Enter recipient name, CNPJ or code...">
                 </div>
                 
                 <div class="btns-row">
                     <button class="btn btn-outline" id="btnList" onclick="listFiles()">
-                        📂 Scan Files
+                        📂 Scan Folder
                     </button>
                     <button class="btn btn-primary" id="btnSearch" onclick="searchInside()">
-                        🔍 Extract Data
+                        🔍 Start Extraction
                     </button>
                 </div>
             </div>
@@ -392,14 +392,14 @@
             <div class="progress-container" id="progressContainer">
                 <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
                 <div class="progress-info">
-                    <span id="progressText">Initializing scan...</span>
+                    <span id="progressText">Checking local files...</span>
                     <span id="progressPercent">0%</span>
                 </div>
             </div>
 
             <!-- Found Files -->
             <div id="filesContainer" style="display:none;">
-                <label class="input-label" style="margin-bottom:10px; display:block;">Detected PDF Targets</label>
+                <label class="input-label" style="margin-bottom:10px; display:block;">Target Files Found</label>
                 <div class="files-list" id="filesList"></div>
             </div>
         </section>
@@ -409,13 +409,13 @@
             <!-- Left Panel -->
             <div class="panel">
                 <div class="panel-header">
-                    <span class="panel-title">Search Results</span>
+                    <span class="panel-title">Matches Found</span>
                     <span class="panel-badge" id="resultsCount">0</span>
                 </div>
                 <div class="results-list" id="resultsList">
                     <div class="empty-state">
-                        <div class="empty-icon">🔎</div>
-                        <p class="empty-text">Select parameters and scan to begin</p>
+                        <div class="empty-icon">📂</div>
+                        <p class="empty-text">Scan a folder to begin extraction</p>
                     </div>
                 </div>
             </div>
@@ -423,15 +423,15 @@
             <!-- Right Panel (Content) -->
             <div class="panel">
                 <div class="panel-header">
-                    <span class="panel-title">Extracted Data</span>
+                    <span class="panel-title" id="contentTitle">Data Details</span>
                     <div id="contentActions" style="display:none;">
-                        <button class="btn-outline" style="height:32px; font-size:11px;" onclick="downloadCurrent()">⬇️ Export Page</button>
+                        <button class="btn-outline" style="height:32px; font-size:11px;" onclick="downloadCurrent()">⬇️ Save PDF Page</button>
                     </div>
                 </div>
                 <div class="content-body" id="contentBody">
                     <div class="empty-state">
-                        <div class="empty-icon">📊</div>
-                        <p class="empty-text">Data details will appear here</p>
+                        <div class="empty-icon">📄</div>
+                        <p class="empty-text">Select a result to view extracted fields</p>
                     </div>
                 </div>
             </div>
@@ -439,8 +439,8 @@
     </main>
 
     <footer class="footer">
-        <span>&copy; 2026 PDF Extraction Engine • V2.0</span>
-        <span id="footerStatus">Core processing ready</span>
+        <span id="localPathText">Monitoring: Local Filesystem</span>
+        <span id="footerStatus">Version 1.0.0 (Local Test)</span>
     </footer>
 
     <div class="toast" id="toast"></div>
@@ -465,22 +465,23 @@
                 const data = await res.json();
                 if (data.connected) {
                     $('statusDot').className = 'status-dot connected';
-                    $('statusText').textContent = 'Live System';
+                    $('statusText').textContent = 'READY';
+                    $('localPathText').textContent = `Folder: ${data.path}`;
                 } else {
                     $('statusDot').className = 'status-dot';
-                    $('statusText').textContent = 'Disconnected';
-                    showToast(data.error || 'Connection Failed', 'error');
+                    $('statusText').textContent = 'PATH ERROR';
+                    showToast(data.error || 'Check LOCAL_PATH in .env', 'error');
                 }
             } catch (e) {
                 $('statusDot').className = 'status-dot';
-                $('statusText').textContent = 'Offline';
+                $('statusText').textContent = 'OFFLINE';
             }
         }
 
         async function listFiles() {
             const day = $('day').value.trim();
             const month = $('month').value.trim();
-            if (!day || !month) return showToast('Enter day and month', 'error');
+            if (!day || !month) return showToast('Enter DD and MM', 'error');
 
             const btn = $('btnList');
             btn.disabled = true;
@@ -497,7 +498,7 @@
                 if (data.success) {
                     state.files = data.files;
                     renderFileChips();
-                    showToast(`${data.total_files} relevant PDFs found`, 'success');
+                    showToast(`${data.total_files} PDFs matched date`, 'success');
                 } else {
                     showToast(data.error, 'error');
                     $('filesContainer').style.display = 'none';
@@ -506,7 +507,7 @@
                 showToast('API Error: ' + e.message, 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '📂 Scan Files';
+                btn.innerHTML = '📂 Scan Folder';
             }
         }
 
@@ -516,10 +517,9 @@
             container.style.display = 'block';
             list.innerHTML = '';
 
-            // 'All files' chip
             const allChip = document.createElement('div');
             allChip.className = 'file-chip active';
-            allChip.textContent = 'Scan All Detected Files';
+            allChip.textContent = 'Extract from all matching files';
             allChip.onclick = () => selectFile(null, allChip);
             list.appendChild(allChip);
 
@@ -543,25 +543,24 @@
             if (state.isSearching) return cancelSearch();
             
             const code = $('code').value.trim();
-            if (!code) return showToast('Enter extraction code', 'error');
+            if (!code) return showToast('Enter keyword/code', 'error');
             
             const targets = state.selectedFileId ? 
                 state.files.filter(f => f.id === state.selectedFileId) : 
                 state.files;
             
-            if (targets.length === 0) return showToast('Scan files first', 'error');
+            if (targets.length === 0) return showToast('Scan folder first', 'error');
 
             startUiSearch();
-            
-            let foundCount = 0;
             state.results = [];
+            state.abortController = new AbortController();
 
             try {
                 for (let i = 0; i < targets.length; i++) {
                     const f = targets[i];
                     updateProgress(
                         ((i / targets.length) * 100), 
-                        `Processing: ${f.name} (${i + 1}/${targets.length})`
+                        `Searching: ${f.name}`
                     );
 
                     const res = await fetch('/api/search-single-pdf', {
@@ -570,6 +569,8 @@
                         body: JSON.stringify({ file_id: f.id, file_name: f.name, code }),
                         signal: state.abortController.signal
                     });
+
+                    if (!res.ok) continue;
 
                     const reader = res.body.getReader();
                     const decoder = new TextDecoder();
@@ -588,7 +589,6 @@
                                     const data = JSON.parse(line);
                                     if (data.success && data.result) {
                                         state.results.push(data.result);
-                                        foundCount++;
                                         renderResults();
                                     }
                                 } catch (e) {}
@@ -598,10 +598,9 @@
                     }
                 }
                 
-                updateProgress(100, `Complete. ${foundCount} matches extracted.`);
-                if (foundCount === 0) showToast('No data matches found', 'info');
+                updateProgress(100, `Complete: ${state.results.length} results found.`);
             } catch (e) {
-                if (e.name !== 'AbortError') showToast('Extraction error: ' + e.message, 'error');
+                if (e.name !== 'AbortError') showToast('Error: ' + e.message, 'error');
             } finally {
                 stopUiSearch();
             }
@@ -612,9 +611,98 @@
             $('resultsCount').textContent = state.results.length;
             
             if (state.results.length === 0) {
-                list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔎</div><p class="empty-text">No matches yet</p></div>';
+                list.innerHTML = '<div class="empty-state"><p class="empty-text">No matches found</p></div>';
                 return;
             }
+
+            list.innerHTML = '';
+            state.results.forEach((res, i) => {
+                const card = document.createElement('div');
+                card.className = 'result-card' + (state.currentResult === res ? ' active' : '');
+                card.onclick = () => selectResult(res, card);
+
+                const ben = res.receipt.beneficiario || 'Unidentified';
+                const val = res.receipt.valor ? `R$ ${res.receipt.valor}` : '';
+
+                card.innerHTML = `
+                    <div class="result-beneficiary">${ben}</div>
+                    <div class="result-file">${res.file_name} • Pág ${res.page}</div>
+                    ${val ? `<div class="result-value">${val}</div>` : ''}
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function selectResult(res, el) {
+            state.currentResult = res;
+            document.querySelectorAll('.result-card').forEach(c => c.classList.remove('active'));
+            if (el) el.classList.add('active');
+            
+            $('contentTitle').textContent = `📄 ${res.file_name} (Page ${res.page})`;
+            $('contentActions').style.display = 'block';
+            
+            const r = res.receipt;
+            let html = `<div class="receipt-view">
+                <div class="receipt-grid">
+                    <div class="data-item"><div class="data-label">Beneficiary</div><div class="data-value">${r.beneficiario || '-'}</div></div>
+                    <div class="data-item"><div class="data-label">CPF/CNPJ</div><div class="data-value mono">${r.cnpj_cpf || '-'}</div></div>
+                    <div class="data-item"><div class="data-label">Amount</div><div class="data-value">${r.valor ? 'R$ '+r.valor : '-'}</div></div>
+                    <div class="data-item"><div class="data-label">Payment Date</div><div class="data-value">${r.data_pagamento || '-'}</div></div>
+                    <div class="data-item"><div class="data-label">Reference/Code</div><div class="data-value mono">${r.referencia || '-'}</div></div>
+                    <div class="data-item"><div class="data-label">Status</div><div class="data-value">${r.status || '-'}</div></div>
+                    <div class="data-item"><div class="data-label">Type</div><div class="data-value">${r.tipo_pagamento || '-'}</div></div>
+                    <div class="data-item"><div class="data-label">Auth Key</div><div class="data-value mono">${r.codigo_autenticacao || '-'}</div></div>
+                </div>
+                <div class="data-label" style="margin-bottom:12px;">Full Text Extract</div>
+                <div class="text-preview" id="textPreview">${highlightText(res.page_text, $('code').value)}</div>
+            </div>`;
+            
+            $('contentBody').innerHTML = html;
+        }
+
+        function highlightText(text, term) {
+            if (!term) return text;
+            const regex = new RegExp(`(${term.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        function downloadCurrent() {
+            if (!state.currentResult) return;
+            const res = state.currentResult;
+            const url = `/api/download-page?file_id=${encodeURIComponent(res.file_id)}&page=${res.page}&filename=${encodeURIComponent(res.file_name)}`;
+            window.location.href = url;
+        }
+
+        function updateProgress(per, text) {
+            $('progressContainer').style.display = 'block';
+            $('progressFill').style.width = per + '%';
+            $('progressPercent').textContent = Math.round(per) + '%';
+            $('progressText').textContent = text;
+        }
+
+        function startUiSearch() {
+            state.isSearching = true;
+            $('btnSearch').innerHTML = '⏹️ Stop Scan';
+            $('btnSearch').classList.add('btn-danger');
+        }
+
+        function stopUiSearch() {
+            state.isSearching = false;
+            $('btnSearch').innerHTML = '🔍 Start Extraction';
+            $('btnSearch').classList.remove('btn-danger');
+        }
+
+        function cancelSearch() {
+            if (state.abortController) state.abortController.abort();
+            showToast('Search canceled by user', 'info');
+        }
+
+        function showToast(msg, type='info') {
+            const toast = $('toast');
+            toast.textContent = msg;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
 
             showToast('Erro ao limpar cache', 'error');
         }
