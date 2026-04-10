@@ -1,35 +1,35 @@
-# PDF Extraction Engine (Local Test Version)
+# PDF Extraction Engine (Versão de Teste Local)
 
-A technical tool for searching and extracting data from PDF files stored locally. This version is designed for high-performance processing of receipts and documents using OCR-like text extraction.
+Uma ferramenta técnica para busca e extração de dados de arquivos PDF armazenados localmente. Esta versão foi projetada para processamento de alta performance de comprovantes e documentos através de extração de texto estruturada.
 
-## Features
-- **Local Search**: Recursively scan any directory for PDFs matching specific date patterns (DD-MM).
-- **Deep Extraction**: Uses `pdfplumber` and `PyPDF2` to extract text, tables, and metadata.
-- **Smart Parsing**: Automatically identifies beneficiaries, values, dates, and authentication keys using regex patterns.
-- **Save/Extract**: View isolated PDF pages containing matches and save them individually.
+## Funcionalidades
+- **Busca Local**: Escaneia qualquer diretório recursivamente em busca de PDFs que correspondam a padrões de data específicos (DD-MM).
+- **Extração Profunda**: Utiliza `pdfplumber` e `PyPDF2` para extrair textos, tabelas e metadados.
+- **Parsing Inteligente**: Identifica automaticamente beneficiários, valores, datas e chaves de autenticação usando padrões regex.
+- **Visualização/Recorte**: Permite visualizar páginas isoladas que contêm as correspondências e salvá-las individualmente.
 
-## Prerequisites
+## Pré-requisitos
 - Python 3.8+
 - `pip install -r requirements.txt`
 
-## Configuration
-1. Rename `.env.example` to `.env`.
-2. Set `LOCAL_PATH` to the folder containing your PDF files:
+## Configuração
+1. Renomeie `.env.example` para `.env`.
+2. Configure o `LOCAL_PATH` com o caminho da pasta que contém seus PDFs:
    ```env
-   LOCAL_PATH=C:\Path\To\Your\PDFs
+   LOCAL_PATH=C:\Caminho\Para\Seus\PDFs
    ```
 
-## Getting Started
-1. Run the server:
+## Como Usar
+1. Inicie o servidor:
    ```bash
    python server.py
    ```
-   *Or use the provided `iniciar.bat` shortcut.*
-2. Open `http://localhost:5000` in your browser.
-3. Enter the day/month of the files you want to scan.
-4. Provide a keyword (name, CNPJ, or part of a code) to start the extraction.
+   *Ou use o atalho `iniciar.bat` fornecido.*
+2. Abra `http://localhost:5000` no seu navegador.
+3. Insira o dia/mês dos arquivos que deseja escanear.
+4. Forneça uma palavra-chave (nome, CNPJ ou parte de um código) para iniciar a extração.
 
-## Technical Details
+## Detalhes Técnicos
 - **Backend**: Flask (Python)
-- **PDF Core**: `pdfplumber` for deep analysis, `PyPDF2` for fast indexing.
-- **Frontend**: Vanilla JS with NDJSON streaming for real-time extraction updates.
+- **Motor PDF**: `pdfplumber` para análise profunda, `PyPDF2` para indexação rápida.
+- **Frontend**: Vanilla JS com streaming NDJSON para atualizações de extração em tempo real.
